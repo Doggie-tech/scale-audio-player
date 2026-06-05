@@ -381,6 +381,18 @@
       gap: 12px;
     }
 
+    .compact-audio .actions {
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .compact-audio button {
+      min-height: 36px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
     audio {
       width: 100%;
       display: none;
@@ -492,6 +504,13 @@
       justify-content: space-between;
       gap: 10px;
       margin-bottom: 10px;
+    }
+
+    .option-card-head h3 {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .empty {
@@ -867,31 +886,25 @@
       state.mediaRecorder.stop();
     }
 
-    async function renderAudioControls(container, type, id, label) {
+    async function renderAudioControls(container, type, id, label, compact = false) {
       const clip = await getClip(type, id);
       const isRecording = state.currentAudioTarget?.type === type && state.currentAudioTarget?.id === id;
       const isPlaying = state.playingKey === audioKey(type, id);
       const isAnyPlaying = Boolean(state.playingKey);
+      const playText = type === "item" ? "播放引导" : "播放";
+      const recordText = clip ? "重录" : "录音";
       container.innerHTML = `
-        <div class="audio-box">
-          <div class="audio-info">${clip ? `${clip.name} · ${Math.round(clip.size / 1024)} KB` : "尚未录入"}</div>
+        <div class="audio-box ${compact ? "compact-audio" : ""}">
           <div class="actions">
-            <button class="${clip ? "primary" : ""}" data-action="play" ${clip && !isAnyPlaying && !isRecording ? "" : "disabled"}>${isPlaying ? "播放中" : "播放引导"}</button>
-            <button class="${!clip ? "primary" : ""} ${isRecording ? "danger" : ""}" data-action="record" ${isRecording || isAnyPlaying ? "disabled" : ""}>${isRecording ? "录音中" : clip ? "重新录入" : "录入一次"}</button>
+            <button class="${clip ? "primary" : ""}" data-action="play" ${clip && !isAnyPlaying && !isRecording ? "" : "disabled"}>${isPlaying ? "播放中" : playText}</button>
+            <button class="${!clip ? "primary" : ""} ${isRecording ? "danger" : ""}" data-action="record" ${isRecording || isAnyPlaying ? "disabled" : ""}>${isRecording ? "录音中" : recordText}</button>
             <button data-action="stop" ${isRecording ? "" : "disabled"}>停止</button>
-            <button class="danger" data-action="delete" ${clip && !isRecording && !isAnyPlaying ? "" : "disabled"}>删除录音</button>
           </div>
         </div>
       `;
       container.querySelector('[data-action="play"]').addEventListener("click", () => playAudio(type, id));
       container.querySelector('[data-action="record"]').addEventListener("click", () => startRecording(type, id, label));
       container.querySelector('[data-action="stop"]').addEventListener("click", stopRecording);
-      container.querySelector('[data-action="delete"]').addEventListener("click", async () => {
-        if (confirm("确定删除这段录音？")) {
-          await deleteClip(type, id);
-          render();
-        }
-      });
     }
 
     function renderScales() {
@@ -934,10 +947,7 @@
               <h2>${escapeHtml(scale.name)}</h2>
               <div class="audio-info">${scale.items.length} 个条目</div>
             </div>
-            <div class="actions">
-              <button id="renameScaleBtn">改名</button>
-              <button class="danger" id="deleteScaleBtn">删除量表</button>
-            </div>
+            <div class="actions"></div>
           </div>
           <div class="actions">
             <button class="subtle" id="addItemBtn">新增条目</button>
@@ -952,16 +962,9 @@
                   <h2>${escapeHtml(item.name)}</h2>
                   <div class="audio-info">第 ${itemIndex + 1} / ${total} 条</div>
                 </div>
-                <div class="actions">
-                  <button class="subtle" id="renameItemBtn">改名</button>
-                  <button class="subtle danger" id="deleteItemBtn">删除</button>
-                </div>
+                <div class="actions"></div>
               </div>
               <div id="itemAudioBox"></div>
-              <div class="field" style="margin-top:12px">
-                <label>条目备注</label>
-                <textarea id="itemNote">${escapeHtml(item.note || "")}</textarea>
-              </div>
               <div class="options-head" style="margin-top:14px">
                 <h3>选项</h3>
                 <button class="subtle" id="addOptionBtn">新增选项</button>
@@ -977,16 +980,11 @@
         </div>
       `;
 
-      $("renameScaleBtn").addEventListener("click", () => renameCurrent("scale"));
-      $("deleteScaleBtn").addEventListener("click", () => removeCurrent("scale"));
       $("addItemBtn").addEventListener("click", addItem);
       $("emptyAddItemBtn")?.addEventListener("click", addItem);
 
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
-        $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
-        $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
-        $("itemNote").addEventListener("input", (event) => saveNote("item", event.target.value));
         $("prevItemBtn").addEventListener("click", () => moveItem(-1, true));
         $("nextItemBtn").addEventListener("click", () => moveItem(1, true));
         attachSwipe($("swipeItemCard"));
@@ -1004,23 +1002,20 @@
       const options = [];
       for (let index = 0; index < item.options.length; index += 1) {
         const option = item.options[index];
-        const clip = await getClip("option", option.id);
-        const isPlaying = state.playingKey === audioKey("option", option.id);
-        const disabled = !clip || Boolean(state.playingKey) || Boolean(state.currentAudioTarget);
         options.push(`
           <div class="option-card" data-id="${option.id}">
             <div class="option-card-head">
               <h3>${index + 1}. ${escapeHtml(option.name)}</h3>
-              <button class="subtle" data-action="play-option" data-id="${option.id}" ${disabled ? "disabled" : ""}>${isPlaying ? "播放中" : "播放"}</button>
+              <div id="optionAudio-${option.id}"></div>
             </div>
           </div>
         `);
       }
       $("optionStack").innerHTML = options.length ? options.join("") : `<div class="empty">没有选项</div>`;
 
-      document.querySelectorAll('[data-action="play-option"]').forEach((button) => {
-        button.addEventListener("click", () => playAudio("option", button.dataset.id));
-      });
+      for (const option of item.options) {
+        await renderAudioControls($(`optionAudio-${option.id}`), "option", option.id, option.name, true);
+      }
     }
 
     function moveItem(delta, autoPlay = false) {
