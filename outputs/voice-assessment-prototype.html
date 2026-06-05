@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>自定义量表录音播放器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #15191b;
+      --muted: rgba(21, 25, 27, .62);
+      --glass: rgba(255,255,255,.56);
+      --glass-2: rgba(255,255,255,.34);
+      --line: rgba(255,255,255,.72);
+      --line-dark: rgba(21,25,27,.10);
+      --blue: #3f7cff;
+      --violet: #8869ff;
+      --danger: #9d3545;
+      --ok: #177255;
+      --shadow: 0 24px 80px rgba(29, 39, 52, .20);
+      --soft-shadow: 0 12px 34px rgba(29, 39, 52, .12);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 16% 16%, rgba(255,255,255,.92), transparent 24%),
+        radial-gradient(circle at 78% 18%, rgba(136,105,255,.34), transparent 30%),
+        radial-gradient(circle at 72% 82%, rgba(74,198,255,.38), transparent 32%),
+        radial-gradient(circle at 20% 84%, rgba(255,204,112,.36), transparent 30%),
+        linear-gradient(135deg, #f7f8fa, #dce2ea 42%, #fbfcff);
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      background:
+        conic-gradient(from 150deg at 50% 50%, rgba(255,255,255,.9), rgba(176,185,198,.58), rgba(255,255,255,.96), rgba(122,136,155,.42), rgba(255,255,255,.9));
+      filter: blur(70px);
+      opacity: .68;
+      animation: metalFlow 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes metalFlow {
+      from { transform: translate3d(-3%, -2%, 0) rotate(-5deg) scale(1); }
+      to { transform: translate3d(3%, 2%, 0) rotate(7deg) scale(1.05); }
+    }
+
+    button, input, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      min-height: 46px;
+      padding: 11px 15px;
+      background: rgba(255,255,255,.54);
+      color: var(--ink);
+      font-weight: 760;
+      box-shadow: 0 8px 22px rgba(29,39,52,.08);
+      backdrop-filter: blur(18px) saturate(145%);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active { transform: scale(.98); }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+
+    .primary {
+      border-color: rgba(255,255,255,.84);
+      background: linear-gradient(135deg, rgba(63,124,255,.95), rgba(136,105,255,.92));
+      color: #fff;
+    }
+
+    .danger {
+      background: rgba(255,245,247,.68);
+      color: var(--danger);
+    }
+
+    .ok {
+      background: rgba(238,255,248,.72);
+      color: var(--ok);
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 13px 14px;
+      background: rgba(255,255,255,.50);
+      color: var(--ink);
+      outline: none;
+      backdrop-filter: blur(16px);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    }
+
+    .topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--glass-2);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(24px) saturate(160%);
+    }
+
+    .topbar.visible { display: flex; }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand b {
+      display: block;
+      font-size: 18px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .screen {
+      min-height: 0;
+      display: none;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,.70);
+      border-radius: 32px;
+      background: rgba(255,255,255,.26);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(26px) saturate(165%);
+    }
+
+    .screen.active { display: block; }
+
+    .cover {
+      display: none;
+      position: relative;
+      height: 100%;
+      min-height: calc(100vh - 28px);
+      padding: clamp(24px, 6vw, 72px);
+      overflow: hidden;
+    }
+
+    .cover.active { display: grid; }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      right: clamp(24px, 8vw, 96px);
+      top: 13%;
+      width: min(48vw, 520px);
+      aspect-ratio: 1;
+      border-radius: 44% 56% 52% 48%;
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255,255,255,.96), transparent 20%),
+        conic-gradient(from 210deg, #ffffff, #8ea1bb, #f7fbff, #6f7e91, #ffffff, #cbd4df, #ffffff);
+      box-shadow: inset 0 0 52px rgba(255,255,255,.72), inset -36px -48px 80px rgba(54,68,88,.26), 0 34px 110px rgba(37,50,70,.24);
+      filter: saturate(120%);
+      animation: blob 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes blob {
+      from { transform: rotate(-8deg) translateY(8px); border-radius: 44% 56% 52% 48%; }
+      to { transform: rotate(9deg) translateY(-10px); border-radius: 58% 42% 47% 53%; }
+    }
+
+    .cover-content {
+      position: relative;
+      z-index: 1;
+      align-self: end;
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      padding: 9px 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.46);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 760;
+      backdrop-filter: blur(18px);
+    }
+
+    h1 {
+      margin: 18px 0 14px;
+      font-size: clamp(46px, 8vw, 104px);
+      line-height: .92;
+      letter-spacing: 0;
+    }
+
+    .cover p {
+      max-width: 620px;
+      margin: 0 0 24px;
+      color: rgba(21,25,27,.70);
+      font-size: clamp(17px, 2.1vw, 24px);
+      line-height: 1.5;
+    }
+
+    .cover-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 14px;
+      height: 100%;
+      padding: 14px;
+    }
+
+    .panel {
+      min-height: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: rgba(255,255,255,.38);
+      backdrop-filter: blur(22px) saturate(150%);
+      overflow: auto;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    h2, h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h2 { font-size: 24px; }
+    h3 { font-size: 18px; }
+
+    .list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .row-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 68px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.60);
+      border-radius: 20px;
+      background: rgba(255,255,255,.42);
+      text-align: left;
+      box-shadow: 0 8px 24px rgba(29,39,52,.08);
+    }
+
+    .row-card.active {
+      outline: 2px solid rgba(63,124,255,.44);
+      background: rgba(255,255,255,.66);
+    }
+
+    .row-card strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-card span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pill {
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: rgba(21,25,27,.62);
+      background: rgba(21,25,27,.08);
+      white-space: nowrap;
+    }
+
+    .pill.ready {
+      color: var(--ok);
+      background: rgba(35,210,150,.22);
+    }
+
+    .editor {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 14px;
+      min-height: 100%;
+    }
+
+    .section-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255,255,255,.40);
+      backdrop-filter: blur(20px) saturate(150%);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin: 0 0 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .audio-box {
+      display: grid;
+      gap: 12px;
+    }
+
+    audio {
+      width: 100%;
+      display: none;
+    }
+
+    .audio-info {
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      align-items: center;
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 11px 15px;
+      border: 1px dashed rgba(21,25,27,.18);
+      border-radius: 18px;
+      background: rgba(255,255,255,.44);
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    .options-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 240px;
+      border: 1px dashed rgba(21,25,27,.18);
+      border-radius: 24px;
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(235,240,246,.44);
+      backdrop-filter: blur(18px);
+    }
+
+    .modal.active { display: grid; }
+
+    .dialog {
+      width: min(520px, 100%);
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255,255,255,.74);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px) saturate(160%);
+    }
+
+    .dialog h3 { margin-bottom: 12px; }
+
+    .dialog .actions {
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: 100vh; }
+      .screen { overflow: visible; }
+      .workspace { grid-template-columns: 1fr; height: auto; }
+      .panel { overflow: visible; }
+      .grid-2, .option-grid { grid-template-columns: 1fr; }
+      .cover { min-height: calc(100vh - 28px); }
+      .cover::after { width: 74vw; right: -18vw; top: 9%; opacity: .72; }
+      .cover-content { align-self: end; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar" id="topbar">
+      <div class="brand">
+        <b>自定义量表录音播放器</b>
+        <span id="crumb">资料库</span>
+      </div>
+      <div class="top-actions">
+        <button id="coverBtn">封面</button>
+        <button class="primary" id="newScaleTopBtn">新增量表</button>
+      </div>
+    </header>
+
+    <section class="cover active" id="coverScreen">
+      <div class="cover-content">
+        <span class="eyebrow">液态金属录音卡片</span>
+        <h1>量表录音播放器</h1>
+        <p>自己添加量表、条目和选项，把每一段提示语录成音频。施测时只点播放，简洁、顺手、像翻卡片一样操作。</p>
+        <div class="cover-actions">
+          <button class="primary" id="enterBtn">进入资料库</button>
+          <button id="coverNewBtn">新建第一个量表</button>
+        </div>
+      </div>
+    </section>
+
+    <main class="screen" id="mainScreen">
+      <div class="workspace">
+        <aside class="panel">
+          <div class="panel-head">
+            <h2>量表</h2>
+            <button class="primary" id="newScaleBtn">新增</button>
+          </div>
+          <div class="list" id="scaleList"></div>
+        </aside>
+
+        <section class="panel">
+          <div class="editor" id="editor"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" id="textModal">
+    <div class="dialog">
+      <h3 id="modalTitle">新增</h3>
+      <div class="field">
+        <label for="modalInput">名称</label>
+        <input id="modalInput" placeholder="输入名称">
+      </div>
+      <div class="actions">
+        <button id="modalCancel">取消</button>
+        <button class="primary" id="modalOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      db: null,
+      scales: [],
+      selectedScaleId: null,
+      selectedItemId: null,
+      selectedOptionId: null,
+      modalResolve: null,
+      mediaRecorder: null,
+      chunks: [],
+      currentAudioTarget: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    function requestToPromise(request) {
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("custom-scale-audio-player", 1);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains("data")) db.createObjectStore("data", { keyPath: "id" });
+          if (!db.objectStoreNames.contains("clips")) db.createObjectStore("clips", { keyPath: "key" });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    const store = (name, mode = "readonly") => state.db.transaction(name, mode).objectStore(name);
+
+    async function saveData() {
+      await requestToPromise(store("data", "readwrite").put({ id: "library", scales: state.scales }));
+    }
+
+    async function loadData() {
+      const saved = await requestToPromise(store("data").get("library"));
+      state.scales = saved?.scales || [];
+    }
+
+    function selectedScale() {
+      return state.scales.find((scale) => scale.id === state.selectedScaleId) || null;
+    }
+
+    function selectedItem() {
+      return selectedScale()?.items.find((item) => item.id === state.selectedItemId) || null;
+    }
+
+    function selectedOption() {
+      return selectedItem()?.options.find((option) => option.id === state.selectedOptionId) || null;
+    }
+
+    function audioKey(type, id) {
+      return `${type}:${id}`;
+    }
+
+    async function getClip(type, id) {
+      return requestToPromise(store("clips").get(audioKey(type, id)));
+    }
+
+    async function putClip(type, id, file, name = file.name) {
+      await requestToPromise(store("clips", "readwrite").put({
+        key: audioKey(type, id),
+        name,
+        size: file.size,
+        type: file.type || "audio/webm",
+        blob: file,
+        updatedAt: new Date().toISOString()
+      }));
+    }
+
+    async function deleteClip(type, id) {
+      await requestToPromise(store("clips", "readwrite").delete(audioKey(type, id)));
+    }
+
+    function showCover() {
+      $("coverScreen").classList.add("active");
+      $("mainScreen").classList.remove("active");
+      $("topbar").classList.remove("visible");
+    }
+
+    function showMain() {
+      $("coverScreen").classList.remove("active");
+      $("mainScreen").classList.add("active");
+      $("topbar").classList.add("visible");
+      render();
+    }
+
+    function openTextModal(title, placeholder = "输入名称") {
+      $("modalTitle").textContent = title;
+      $("modalInput").value = "";
+      $("modalInput").placeholder = placeholder;
+      $("textModal").classList.add("active");
+      $("modalInput").focus();
+      return new Promise((resolve) => {
+        state.modalResolve = resolve;
+      });
+    }
+
+    function closeTextModal(value = null) {
+      $("textModal").classList.remove("active");
+      if (state.modalResolve) state.modalResolve(value);
+      state.modalResolve = null;
+    }
+
+    async function addScale() {
+      const name = await openTextModal("新增量表", "例如：MoCA、MMSE、汉密尔顿");
+      if (!name) return;
+      const scale = { id: uid("scale"), name, items: [] };
+      state.scales.push(scale);
+      state.selectedScaleId = scale.id;
+      state.selectedItemId = null;
+      state.selectedOptionId = null;
+      await saveData();
+      showMain();
+    }
+
+    async function addItem() {
+      const scale = selectedScale();
+      if (!scale) return;
+      const name = await openTextModal("新增条目", "例如：定向力-时间");
+      if (!name) return;
+      const item = { id: uid("item"), name, note: "", options: [] };
+      scale.items.push(item);
+      state.selectedItemId = item.id;
+      state.selectedOptionId = null;
+      await saveData();
+      render();
+    }
+
+    async function addOption() {
+      const item = selectedItem();
+      if (!item) return;
+      const name = await openTextModal("新增选项", "例如：提示语A、重复说明、练习项");
+      if (!name) return;
+      const option = { id: uid("option"), name, note: "" };
+      item.options.push(option);
+      state.selectedOptionId = option.id;
+      await saveData();
+      render();
+    }
+
+    async function renameCurrent(type) {
+      const target = type === "scale" ? selectedScale() : type === "item" ? selectedItem() : selectedOption();
+      if (!target) return;
+      const name = await openTextModal("重命名", target.name);
+      if (!name) return;
+      target.name = name;
+      await saveData();
+      render();
+    }
+
+    async function removeCurrent(type) {
+      if (type === "option") {
+        const item = selectedItem();
+        if (!item || !selectedOption()) return;
+        if (!confirm("确定删除当前选项？")) return;
+        await deleteClip("option", state.selectedOptionId);
+        item.options = item.options.filter((option) => option.id !== state.selectedOptionId);
+        state.selectedOptionId = item.options[0]?.id || null;
+      }
+      if (type === "item") {
+        const scale = selectedScale();
+        const item = selectedItem();
+        if (!scale || !item) return;
+        if (!confirm("确定删除当前条目和它的选项？")) return;
+        await deleteClip("item", item.id);
+        for (const option of item.options) await deleteClip("option", option.id);
+        scale.items = scale.items.filter((entry) => entry.id !== item.id);
+        state.selectedItemId = scale.items[0]?.id || null;
+        state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+      }
+      if (type === "scale") {
+        const scale = selectedScale();
+        if (!scale) return;
+        if (!confirm("确定删除当前量表和全部条目？")) return;
+        for (const item of scale.items) {
+          await deleteClip("item", item.id);
+          for (const option of item.options) await deleteClip("option", option.id);
+        }
+        state.scales = state.scales.filter((entry) => entry.id !== scale.id);
+        state.selectedScaleId = state.scales[0]?.id || null;
+        state.selectedItemId = selectedScale()?.items[0]?.id || null;
+        state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+      }
+      await saveData();
+      render();
+    }
+
+    async function saveNote(type, value) {
+      const target = type === "item" ? selectedItem() : selectedOption();
+      if (!target) return;
+      target.note = value;
+      await saveData();
+    }
+
+    async function uploadAudio(type, id, file) {
+      if (!file) return;
+      await putClip(type, id, file);
+      render();
+    }
+
+    async function playAudio(type, id) {
+      const clip = await getClip(type, id);
+      if (!clip) return;
+      const audio = new Audio(URL.createObjectURL(clip.blob));
+      audio.play();
+      audio.onended = () => URL.revokeObjectURL(audio.src);
+    }
+
+    async function startRecording(type, id, label) {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        alert("当前浏览器不支持网页录音，请使用上传音频。");
+        return;
+      }
+      state.currentAudioTarget = { type, id, label };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.chunks = [];
+      state.mediaRecorder = new MediaRecorder(stream);
+      state.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size) state.chunks.push(event.data);
+      };
+      state.mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        const file = new File([blob], `${label}-录音.webm`, { type: blob.type });
+        await putClip(type, id, file, file.name);
+        state.currentAudioTarget = null;
+        render();
+      };
+      state.mediaRecorder.start();
+      render();
+    }
+
+    function stopRecording() {
+      if (!state.mediaRecorder || state.mediaRecorder.state === "inactive") return;
+      state.mediaRecorder.stop();
+    }
+
+    async function renderAudioControls(container, type, id, label) {
+      const clip = await getClip(type, id);
+      const isRecording = state.currentAudioTarget?.type === type && state.currentAudioTarget?.id === id;
+      container.innerHTML = `
+        <div class="audio-box">
+          <div class="audio-info">${clip ? `${clip.name} · ${Math.round(clip.size / 1024)} KB` : "尚未添加录音"}</div>
+          <div class="actions">
+            <button class="primary" data-action="play" ${clip ? "" : "disabled"}>播放</button>
+            <button class="${isRecording ? "danger" : ""}" data-action="record" ${isRecording ? "disabled" : ""}>${isRecording ? "录音中" : "开始录音"}</button>
+            <button data-action="stop" ${isRecording ? "" : "disabled"}>停止</button>
+            <label class="file-label">上传<input type="file" accept="audio/*" data-action="upload"></label>
+            <button class="danger" data-action="delete" ${clip ? "" : "disabled"}>删除音频</button>
+          </div>
+        </div>
+      `;
+      container.querySelector('[data-action="play"]').addEventListener("click", () => playAudio(type, id));
+      container.querySelector('[data-action="record"]').addEventListener("click", () => startRecording(type, id, label));
+      container.querySelector('[data-action="stop"]').addEventListener("click", stopRecording);
+      container.querySelector('[data-action="upload"]').addEventListener("change", (event) => uploadAudio(type, id, event.target.files[0]));
+      container.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+        if (confirm("确定删除这段录音？")) {
+          await deleteClip(type, id);
+          render();
+        }
+      });
+    }
+
+    function renderScales() {
+      $("scaleList").innerHTML = state.scales.length ? state.scales.map((scale) => {
+        const itemCount = scale.items.length;
+        const optionCount = scale.items.reduce((sum, item) => sum + item.options.length, 0);
+        return `<button class="row-card ${scale.id === state.selectedScaleId ? "active" : ""}" data-id="${scale.id}">
+          <span><strong>${escapeHtml(scale.name)}</strong><span>${itemCount} 个条目 · ${optionCount} 个选项</span></span>
+          <span class="pill">打开</span>
+        </button>`;
+      }).join("") : `<div class="empty">还没有量表<br>点“新增”开始。</div>`;
+
+      document.querySelectorAll("#scaleList .row-card").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedScaleId = button.dataset.id;
+          const scale = selectedScale();
+          state.selectedItemId = scale.items[0]?.id || null;
+          state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+          render();
+        });
+      });
+    }
+
+    async function renderEditor() {
+      const scale = selectedScale();
+      if (!scale) {
+        $("editor").innerHTML = `<div class="empty">选择或新增一个量表。</div>`;
+        return;
+      }
+
+      const item = selectedItem();
+      const option = selectedOption();
+      $("crumb").textContent = item ? `${scale.name} / ${item.name}` : scale.name;
+
+      $("editor").innerHTML = `
+        <div class="section-card">
+          <div class="panel-head">
+            <div>
+              <h2>${escapeHtml(scale.name)}</h2>
+              <div class="audio-info">${scale.items.length} 个条目</div>
+            </div>
+            <div class="actions">
+              <button id="renameScaleBtn">改名</button>
+              <button class="danger" id="deleteScaleBtn">删除量表</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="addItemBtn">新增条目</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="section-card">
+            <div class="panel-head">
+              <h3>条目</h3>
+              <button class="primary" id="addItemBtn2">新增</button>
+            </div>
+            <div class="list" id="itemList"></div>
+          </div>
+          <div class="section-card">
+            <div class="options-head">
+              <h3>选项</h3>
+              <button class="primary" id="addOptionBtn" ${item ? "" : "disabled"}>新增</button>
+            </div>
+            <div class="list" id="optionList"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="section-card">
+            <div class="panel-head">
+              <h3>${item ? escapeHtml(item.name) : "条目详情"}</h3>
+              <div class="actions">
+                <button id="renameItemBtn" ${item ? "" : "disabled"}>改名</button>
+                <button class="danger" id="deleteItemBtn" ${item ? "" : "disabled"}>删除</button>
+              </div>
+            </div>
+            <div id="itemAudioBox"></div>
+            <div class="field" style="margin-top:12px">
+              <label>条目备注</label>
+              <textarea id="itemNote" ${item ? "" : "disabled"}>${escapeHtml(item?.note || "")}</textarea>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="panel-head">
+              <h3>${option ? escapeHtml(option.name) : "选项详情"}</h3>
+              <div class="actions">
+                <button id="renameOptionBtn" ${option ? "" : "disabled"}>改名</button>
+                <button class="danger" id="deleteOptionBtn" ${option ? "" : "disabled"}>删除</button>
+              </div>
+            </div>
+            <div id="optionAudioBox"></div>
+            <div class="field" style="margin-top:12px">
+              <label>选项备注</label>
+              <textarea id="optionNote" ${option ? "" : "disabled"}>${escapeHtml(option?.note || "")}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderItems(scale);
+      renderOptions(item);
+
+      $("renameScaleBtn").addEventListener("click", () => renameCurrent("scale"));
+      $("deleteScaleBtn").addEventListener("click", () => removeCurrent("scale"));
+      $("addItemBtn").addEventListener("click", addItem);
+      $("addItemBtn2").addEventListener("click", addItem);
+      $("addOptionBtn").addEventListener("click", addOption);
+      $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
+      $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
+      $("renameOptionBtn").addEventListener("click", () => renameCurrent("option"));
+      $("deleteOptionBtn").addEventListener("click", () => removeCurrent("option"));
+      $("itemNote").addEventListener("input", (event) => saveNote("item", event.target.value));
+      $("optionNote").addEventListener("input", (event) => saveNote("option", event.target.value));
+
+      if (item) await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
+      else $("itemAudioBox").innerHTML = `<div class="empty">先新增一个条目。</div>`;
+
+      if (option) await renderAudioControls($("optionAudioBox"), "option", option.id, option.name);
+      else $("optionAudioBox").innerHTML = `<div class="empty">选项可选；需要分支提示时再添加。</div>`;
+    }
+
+    function renderItems(scale) {
+      $("itemList").innerHTML = scale.items.length ? scale.items.map((item) => `
+        <button class="row-card ${item.id === state.selectedItemId ? "active" : ""}" data-id="${item.id}">
+          <span><strong>${escapeHtml(item.name)}</strong><span>${item.options.length} 个选项</span></span>
+          <span class="pill">条目</span>
+        </button>
+      `).join("") : `<div class="empty">还没有条目。</div>`;
+
+      document.querySelectorAll("#itemList .row-card").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedItemId = button.dataset.id;
+          state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+          render();
+        });
+      });
+    }
+
+    function renderOptions(item) {
+      if (!item) {
+        $("optionList").innerHTML = `<div class="empty">先选择条目。</div>`;
+        return;
+      }
+
+      $("optionList").innerHTML = item.options.length ? item.options.map((option) => `
+        <button class="row-card ${option.id === state.selectedOptionId ? "active" : ""}" data-id="${option.id}">
+          <span><strong>${escapeHtml(option.name)}</strong><span>可单独添加录音</span></span>
+          <span class="pill">选项</span>
+        </button>
+      `).join("") : `<div class="empty">没有选项也可以。<br>只给条目录音即可播放。</div>`;
+
+      document.querySelectorAll("#optionList .row-card").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedOptionId = button.dataset.id;
+          render();
+        });
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[ch]));
+    }
+
+    function render() {
+      renderScales();
+      renderEditor();
+    }
+
+    $("enterBtn").addEventListener("click", showMain);
+    $("coverBtn").addEventListener("click", showCover);
+    $("coverNewBtn").addEventListener("click", addScale);
+    $("newScaleBtn").addEventListener("click", addScale);
+    $("newScaleTopBtn").addEventListener("click", addScale);
+    $("modalCancel").addEventListener("click", () => closeTextModal(null));
+    $("modalOk").addEventListener("click", () => closeTextModal($("modalInput").value.trim()));
+    $("modalInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") closeTextModal($("modalInput").value.trim());
+    });
+
+    async function start() {
+      state.db = await openDb();
+      await loadData();
+      state.selectedScaleId = state.scales[0]?.id || null;
+      state.selectedItemId = selectedScale()?.items[0]?.id || null;
+      state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+      render();
+    }
+
+    start().catch((error) => {
+      alert(`初始化失败：${error.message}`);
+    });
+  </script>
+</body>
+</html>
