@@ -13,8 +13,12 @@
       --glass-2: rgba(255,255,255,.34);
       --line: rgba(255,255,255,.72);
       --line-dark: rgba(21,25,27,.10);
-      --blue: #3f7cff;
-      --violet: #8869ff;
+      --blue: #2f80ff;
+      --violet: #9b5cff;
+      --pink: #ff4fa3;
+      --orange: #ff9a3d;
+      --yellow: #ffe45e;
+      --green: #29df9a;
       --danger: #9d3545;
       --ok: #177255;
       --shadow: 0 24px 80px rgba(29, 39, 52, .20);
@@ -29,11 +33,11 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        radial-gradient(circle at 16% 16%, rgba(255,255,255,.92), transparent 24%),
-        radial-gradient(circle at 78% 18%, rgba(136,105,255,.34), transparent 30%),
-        radial-gradient(circle at 72% 82%, rgba(74,198,255,.38), transparent 32%),
-        radial-gradient(circle at 20% 84%, rgba(255,204,112,.36), transparent 30%),
-        linear-gradient(135deg, #f7f8fa, #dce2ea 42%, #fbfcff);
+        radial-gradient(circle at 12% 12%, rgba(255, 79, 163, .58), transparent 28%),
+        radial-gradient(circle at 82% 14%, rgba(255, 228, 94, .66), transparent 30%),
+        radial-gradient(circle at 76% 82%, rgba(41, 223, 154, .56), transparent 32%),
+        radial-gradient(circle at 18% 86%, rgba(47, 128, 255, .50), transparent 30%),
+        linear-gradient(135deg, #fff7fb, #eff8ff 40%, #fffce7 72%, #f4fff7);
       overflow: hidden;
     }
 
@@ -42,9 +46,9 @@
       position: fixed;
       inset: -20%;
       background:
-        conic-gradient(from 150deg at 50% 50%, rgba(255,255,255,.9), rgba(176,185,198,.58), rgba(255,255,255,.96), rgba(122,136,155,.42), rgba(255,255,255,.9));
-      filter: blur(70px);
-      opacity: .68;
+        conic-gradient(from 150deg at 50% 50%, rgba(255,255,255,.9), rgba(255,79,163,.28), rgba(255,255,255,.96), rgba(47,128,255,.26), rgba(255,228,94,.34), rgba(41,223,154,.28), rgba(255,255,255,.9));
+      filter: blur(64px);
+      opacity: .78;
       animation: metalFlow 18s ease-in-out infinite alternate;
     }
 
@@ -76,7 +80,7 @@
 
     .primary {
       border-color: rgba(255,255,255,.84);
-      background: linear-gradient(135deg, rgba(63,124,255,.95), rgba(136,105,255,.92));
+      background: linear-gradient(135deg, var(--pink), var(--orange), var(--yellow));
       color: #fff;
     }
 
@@ -105,14 +109,6 @@
       min-height: 92px;
       resize: vertical;
       line-height: 1.55;
-    }
-
-    input[type="file"] {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
     }
 
     .app {
@@ -202,8 +198,8 @@
       border-radius: 44% 56% 52% 48%;
       background:
         radial-gradient(circle at 32% 26%, rgba(255,255,255,.96), transparent 20%),
-        conic-gradient(from 210deg, #ffffff, #8ea1bb, #f7fbff, #6f7e91, #ffffff, #cbd4df, #ffffff);
-      box-shadow: inset 0 0 52px rgba(255,255,255,.72), inset -36px -48px 80px rgba(54,68,88,.26), 0 34px 110px rgba(37,50,70,.24);
+        conic-gradient(from 210deg, #ffffff, #ff4fa3, #ffe45e, #29df9a, #2f80ff, #9b5cff, #ffffff);
+      box-shadow: inset 0 0 52px rgba(255,255,255,.72), inset -36px -48px 80px rgba(54,68,88,.18), 0 34px 110px rgba(255,79,163,.22);
       filter: saturate(120%);
       animation: blob 10s ease-in-out infinite alternate;
     }
@@ -393,19 +389,6 @@
       align-items: center;
     }
 
-    .file-label {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 46px;
-      padding: 11px 15px;
-      border: 1px dashed rgba(21,25,27,.18);
-      border-radius: 18px;
-      background: rgba(255,255,255,.44);
-      font-weight: 760;
-      cursor: pointer;
-    }
-
     .options-head {
       display: flex;
       align-items: center;
@@ -418,6 +401,85 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+    }
+
+    .item-stage {
+      display: grid;
+      gap: 12px;
+      min-height: 100%;
+    }
+
+    .item-card-main {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255,255,255,.48);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(22px) saturate(150%);
+      touch-action: pan-y;
+    }
+
+    .item-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .item-title-row h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.02;
+    }
+
+    .nav-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .nav-row span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .item-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .item-strip button {
+      min-width: 96px;
+      border-radius: 999px;
+      padding: 10px 12px;
+      white-space: nowrap;
+    }
+
+    .option-stack {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .option-card {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.64);
+      border-radius: 22px;
+      background: rgba(255,255,255,.42);
+    }
+
+    .option-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
     .empty {
@@ -467,7 +529,7 @@
       .screen { overflow: visible; }
       .workspace { grid-template-columns: 1fr; height: auto; }
       .panel { overflow: visible; }
-      .grid-2, .option-grid { grid-template-columns: 1fr; }
+      .grid-2, .option-grid, .nav-row { grid-template-columns: 1fr; }
       .cover { min-height: calc(100vh - 28px); }
       .cover::after { width: 74vw; right: -18vw; top: 9%; opacity: .72; }
       .cover-content { align-self: end; }
@@ -489,9 +551,9 @@
 
     <section class="cover active" id="coverScreen">
       <div class="cover-content">
-        <span class="eyebrow">液态金属录音卡片</span>
+        <span class="eyebrow">多巴胺录音卡片</span>
         <h1>量表录音播放器</h1>
-        <p>自己添加量表、条目和选项，把每一段提示语录成音频。施测时只点播放，简洁、顺手、像翻卡片一样操作。</p>
+        <p>自己添加量表、条目和选项。每段引导只录入一次，之后施测时主要点“播放引导”，简洁、明快、顺手。</p>
         <div class="cover-actions">
           <button class="primary" id="enterBtn">进入资料库</button>
           <button id="coverNewBtn">新建第一个量表</button>
@@ -540,7 +602,11 @@
       modalResolve: null,
       mediaRecorder: null,
       chunks: [],
-      currentAudioTarget: null
+      currentAudioTarget: null,
+      playingKey: null,
+      activeAudio: null,
+      touchStartX: 0,
+      touchStartY: 0
     };
 
     const $ = (id) => document.getElementById(id);
@@ -587,6 +653,12 @@
 
     function selectedOption() {
       return selectedItem()?.options.find((option) => option.id === state.selectedOptionId) || null;
+    }
+
+    function selectedItemIndex() {
+      const scale = selectedScale();
+      if (!scale || !state.selectedItemId) return -1;
+      return scale.items.findIndex((item) => item.id === state.selectedItemId);
     }
 
     function audioKey(type, id) {
@@ -733,23 +805,30 @@
       await saveData();
     }
 
-    async function uploadAudio(type, id, file) {
-      if (!file) return;
-      await putClip(type, id, file);
-      render();
-    }
-
     async function playAudio(type, id) {
+      const key = audioKey(type, id);
+      if (state.playingKey) return;
       const clip = await getClip(type, id);
       if (!clip) return;
-      const audio = new Audio(URL.createObjectURL(clip.blob));
-      audio.play();
-      audio.onended = () => URL.revokeObjectURL(audio.src);
+      const url = URL.createObjectURL(clip.blob);
+      const audio = new Audio(url);
+      state.playingKey = key;
+      state.activeAudio = audio;
+      render();
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        state.playingKey = null;
+        state.activeAudio = null;
+        render();
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.play().catch(cleanup);
     }
 
     async function startRecording(type, id, label) {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-        alert("当前浏览器不支持网页录音，请使用上传音频。");
+        alert("当前浏览器不支持网页录音，请换用支持麦克风录音的浏览器。");
         return;
       }
       state.currentAudioTarget = { type, id, label };
@@ -779,22 +858,22 @@
     async function renderAudioControls(container, type, id, label) {
       const clip = await getClip(type, id);
       const isRecording = state.currentAudioTarget?.type === type && state.currentAudioTarget?.id === id;
+      const isPlaying = state.playingKey === audioKey(type, id);
+      const isAnyPlaying = Boolean(state.playingKey);
       container.innerHTML = `
         <div class="audio-box">
-          <div class="audio-info">${clip ? `${clip.name} · ${Math.round(clip.size / 1024)} KB` : "尚未添加录音"}</div>
+          <div class="audio-info">${clip ? `${clip.name} · ${Math.round(clip.size / 1024)} KB · 已录入，后续直接播放` : "尚未录入。先录一次，之后反复播放引导。"}</div>
           <div class="actions">
-            <button class="primary" data-action="play" ${clip ? "" : "disabled"}>播放</button>
-            <button class="${isRecording ? "danger" : ""}" data-action="record" ${isRecording ? "disabled" : ""}>${isRecording ? "录音中" : "开始录音"}</button>
+            <button class="${clip ? "primary" : ""}" data-action="play" ${clip && !isAnyPlaying && !isRecording ? "" : "disabled"}>${isPlaying ? "播放中" : "播放引导"}</button>
+            <button class="${!clip ? "primary" : ""} ${isRecording ? "danger" : ""}" data-action="record" ${isRecording || isAnyPlaying ? "disabled" : ""}>${isRecording ? "录音中" : clip ? "重新录入" : "录入一次"}</button>
             <button data-action="stop" ${isRecording ? "" : "disabled"}>停止</button>
-            <label class="file-label">上传<input type="file" accept="audio/*" data-action="upload"></label>
-            <button class="danger" data-action="delete" ${clip ? "" : "disabled"}>删除音频</button>
+            <button class="danger" data-action="delete" ${clip && !isRecording && !isAnyPlaying ? "" : "disabled"}>删除录音</button>
           </div>
         </div>
       `;
       container.querySelector('[data-action="play"]').addEventListener("click", () => playAudio(type, id));
       container.querySelector('[data-action="record"]').addEventListener("click", () => startRecording(type, id, label));
       container.querySelector('[data-action="stop"]').addEventListener("click", stopRecording);
-      container.querySelector('[data-action="upload"]').addEventListener("change", (event) => uploadAudio(type, id, event.target.files[0]));
       container.querySelector('[data-action="delete"]').addEventListener("click", async () => {
         if (confirm("确定删除这段录音？")) {
           await deleteClip(type, id);
@@ -832,8 +911,9 @@
       }
 
       const item = selectedItem();
-      const option = selectedOption();
       $("crumb").textContent = item ? `${scale.name} / ${item.name}` : scale.name;
+      const itemIndex = selectedItemIndex();
+      const total = scale.items.length;
 
       $("editor").innerHTML = `
         <div class="section-card">
@@ -852,87 +932,73 @@
           </div>
         </div>
 
-        <div class="grid-2">
-          <div class="section-card">
-            <div class="panel-head">
-              <h3>条目</h3>
-              <button class="primary" id="addItemBtn2">新增</button>
-            </div>
-            <div class="list" id="itemList"></div>
-          </div>
-          <div class="section-card">
-            <div class="options-head">
-              <h3>选项</h3>
-              <button class="primary" id="addOptionBtn" ${item ? "" : "disabled"}>新增</button>
-            </div>
-            <div class="list" id="optionList"></div>
-          </div>
-        </div>
-
-        <div class="grid-2">
-          <div class="section-card">
-            <div class="panel-head">
-              <h3>${item ? escapeHtml(item.name) : "条目详情"}</h3>
-              <div class="actions">
-                <button id="renameItemBtn" ${item ? "" : "disabled"}>改名</button>
-                <button class="danger" id="deleteItemBtn" ${item ? "" : "disabled"}>删除</button>
+        <div class="item-stage">
+          <div class="item-strip" id="itemStrip"></div>
+          ${item ? `
+            <div class="item-card-main" id="swipeItemCard">
+              <div class="item-title-row">
+                <div>
+                  <h2>${escapeHtml(item.name)}</h2>
+                  <div class="audio-info">第 ${itemIndex + 1} / ${total} 条 · 左右滑动切换条目</div>
+                </div>
+                <div class="actions">
+                  <button id="renameItemBtn">改名</button>
+                  <button class="danger" id="deleteItemBtn">删除</button>
+                </div>
+              </div>
+              <div id="itemAudioBox"></div>
+              <div class="field" style="margin-top:12px">
+                <label>条目备注</label>
+                <textarea id="itemNote">${escapeHtml(item.note || "")}</textarea>
+              </div>
+              <div class="nav-row">
+                <button id="prevItemBtn" ${itemIndex <= 0 ? "disabled" : ""}>上一条</button>
+                <span>滑动卡片也可以切换</span>
+                <button class="primary" id="nextItemBtn" ${itemIndex >= total - 1 ? "disabled" : ""}>下一条</button>
               </div>
             </div>
-            <div id="itemAudioBox"></div>
-            <div class="field" style="margin-top:12px">
-              <label>条目备注</label>
-              <textarea id="itemNote" ${item ? "" : "disabled"}>${escapeHtml(item?.note || "")}</textarea>
-            </div>
-          </div>
 
-          <div class="section-card">
-            <div class="panel-head">
-              <h3>${option ? escapeHtml(option.name) : "选项详情"}</h3>
-              <div class="actions">
-                <button id="renameOptionBtn" ${option ? "" : "disabled"}>改名</button>
-                <button class="danger" id="deleteOptionBtn" ${option ? "" : "disabled"}>删除</button>
+            <div class="section-card">
+              <div class="options-head">
+                <div>
+                  <h3>本条选项</h3>
+                  <div class="audio-info">选项和条目放在一起；需要分支引导时再添加。</div>
+                </div>
+                <button class="primary" id="addOptionBtn">新增选项</button>
               </div>
+              <div class="option-stack" id="optionStack"></div>
             </div>
-            <div id="optionAudioBox"></div>
-            <div class="field" style="margin-top:12px">
-              <label>选项备注</label>
-              <textarea id="optionNote" ${option ? "" : "disabled"}>${escapeHtml(option?.note || "")}</textarea>
-            </div>
-          </div>
+          ` : `<div class="empty">还没有条目。点“新增条目”开始。</div>`}
         </div>
       `;
 
-      renderItems(scale);
-      renderOptions(item);
+      renderItemStrip(scale);
 
       $("renameScaleBtn").addEventListener("click", () => renameCurrent("scale"));
       $("deleteScaleBtn").addEventListener("click", () => removeCurrent("scale"));
       $("addItemBtn").addEventListener("click", addItem);
-      $("addItemBtn2").addEventListener("click", addItem);
-      $("addOptionBtn").addEventListener("click", addOption);
-      $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
-      $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
-      $("renameOptionBtn").addEventListener("click", () => renameCurrent("option"));
-      $("deleteOptionBtn").addEventListener("click", () => removeCurrent("option"));
-      $("itemNote").addEventListener("input", (event) => saveNote("item", event.target.value));
-      $("optionNote").addEventListener("input", (event) => saveNote("option", event.target.value));
 
-      if (item) await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
-      else $("itemAudioBox").innerHTML = `<div class="empty">先新增一个条目。</div>`;
-
-      if (option) await renderAudioControls($("optionAudioBox"), "option", option.id, option.name);
-      else $("optionAudioBox").innerHTML = `<div class="empty">选项可选；需要分支提示时再添加。</div>`;
+      if (item) {
+        $("addOptionBtn").addEventListener("click", addOption);
+        $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
+        $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
+        $("itemNote").addEventListener("input", (event) => saveNote("item", event.target.value));
+        $("prevItemBtn").addEventListener("click", () => moveItem(-1));
+        $("nextItemBtn").addEventListener("click", () => moveItem(1));
+        attachSwipe($("swipeItemCard"));
+        await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
+        await renderOptionStack(item);
+      }
     }
 
-    function renderItems(scale) {
-      $("itemList").innerHTML = scale.items.length ? scale.items.map((item) => `
-        <button class="row-card ${item.id === state.selectedItemId ? "active" : ""}" data-id="${item.id}">
-          <span><strong>${escapeHtml(item.name)}</strong><span>${item.options.length} 个选项</span></span>
-          <span class="pill">条目</span>
+    function renderItemStrip(scale) {
+      $("itemStrip").innerHTML = scale.items.length ? scale.items.map((item, index) => `
+        <button class="${item.id === state.selectedItemId ? "primary" : ""}" data-id="${item.id}">
+          ${index + 1}. ${escapeHtml(item.name)}
         </button>
       `).join("") : `<div class="empty">还没有条目。</div>`;
 
-      document.querySelectorAll("#itemList .row-card").forEach((button) => {
+      document.querySelectorAll("#itemStrip button").forEach((button) => {
         button.addEventListener("click", () => {
           state.selectedItemId = button.dataset.id;
           state.selectedOptionId = selectedItem()?.options[0]?.id || null;
@@ -941,25 +1007,81 @@
       });
     }
 
-    function renderOptions(item) {
+    async function renderOptionStack(item) {
       if (!item) {
-        $("optionList").innerHTML = `<div class="empty">先选择条目。</div>`;
+        $("optionStack").innerHTML = `<div class="empty">先选择条目。</div>`;
         return;
       }
 
-      $("optionList").innerHTML = item.options.length ? item.options.map((option) => `
-        <button class="row-card ${option.id === state.selectedOptionId ? "active" : ""}" data-id="${option.id}">
-          <span><strong>${escapeHtml(option.name)}</strong><span>可单独添加录音</span></span>
-          <span class="pill">选项</span>
-        </button>
+      $("optionStack").innerHTML = item.options.length ? item.options.map((option, index) => `
+        <div class="option-card" data-id="${option.id}">
+          <div class="option-card-head">
+            <div>
+              <h3>${index + 1}. ${escapeHtml(option.name)}</h3>
+              <div class="audio-info">选项引导</div>
+            </div>
+            <div class="actions">
+              <button data-action="rename-option" data-id="${option.id}">改名</button>
+              <button class="danger" data-action="delete-option" data-id="${option.id}">删除</button>
+            </div>
+          </div>
+          <div id="optionAudio-${option.id}"></div>
+          <div class="field" style="margin-top:12px">
+            <label>选项备注</label>
+            <textarea data-action="option-note" data-id="${option.id}">${escapeHtml(option.note || "")}</textarea>
+          </div>
+        </div>
       `).join("") : `<div class="empty">没有选项也可以。<br>只给条目录音即可播放。</div>`;
 
-      document.querySelectorAll("#optionList .row-card").forEach((button) => {
+      for (const option of item.options) {
+        await renderAudioControls($(`optionAudio-${option.id}`), "option", option.id, option.name);
+      }
+
+      document.querySelectorAll('[data-action="rename-option"]').forEach((button) => {
         button.addEventListener("click", () => {
           state.selectedOptionId = button.dataset.id;
-          render();
+          renameCurrent("option");
         });
       });
+      document.querySelectorAll('[data-action="delete-option"]').forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedOptionId = button.dataset.id;
+          removeCurrent("option");
+        });
+      });
+      document.querySelectorAll('[data-action="option-note"]').forEach((textarea) => {
+        textarea.addEventListener("input", async (event) => {
+          state.selectedOptionId = event.target.dataset.id;
+          await saveNote("option", event.target.value);
+        });
+      });
+    }
+
+    function moveItem(delta) {
+      const scale = selectedScale();
+      const index = selectedItemIndex();
+      if (!scale || index < 0) return;
+      const nextIndex = Math.max(0, Math.min(scale.items.length - 1, index + delta));
+      if (nextIndex === index) return;
+      state.selectedItemId = scale.items[nextIndex].id;
+      state.selectedOptionId = scale.items[nextIndex].options[0]?.id || null;
+      render();
+    }
+
+    function attachSwipe(element) {
+      element.addEventListener("touchstart", (event) => {
+        const touch = event.changedTouches[0];
+        state.touchStartX = touch.clientX;
+        state.touchStartY = touch.clientY;
+      }, { passive: true });
+
+      element.addEventListener("touchend", (event) => {
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - state.touchStartX;
+        const dy = touch.clientY - state.touchStartY;
+        if (Math.abs(dx) < 54 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+        moveItem(dx < 0 ? 1 : -1);
+      }, { passive: true });
     }
 
     function escapeHtml(value) {
