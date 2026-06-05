@@ -13,12 +13,12 @@
       --glass-2: rgba(255,255,255,.34);
       --line: rgba(255,255,255,.72);
       --line-dark: rgba(21,25,27,.10);
-      --blue: #2f80ff;
-      --violet: #9b5cff;
-      --pink: #ff4fa3;
-      --orange: #ff9a3d;
-      --yellow: #ffe45e;
-      --green: #29df9a;
+      --blue: #426fbd;
+      --violet: #7258b8;
+      --pink: #b94d7a;
+      --orange: #be7442;
+      --yellow: #d0b24a;
+      --green: #3f9b73;
       --danger: #9d3545;
       --ok: #177255;
       --shadow: 0 24px 80px rgba(29, 39, 52, .20);
@@ -33,11 +33,11 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        radial-gradient(circle at 12% 12%, rgba(255, 79, 163, .58), transparent 28%),
-        radial-gradient(circle at 82% 14%, rgba(255, 228, 94, .66), transparent 30%),
-        radial-gradient(circle at 76% 82%, rgba(41, 223, 154, .56), transparent 32%),
-        radial-gradient(circle at 18% 86%, rgba(47, 128, 255, .50), transparent 30%),
-        linear-gradient(135deg, #fff7fb, #eff8ff 40%, #fffce7 72%, #f4fff7);
+        radial-gradient(circle at 12% 12%, rgba(185, 77, 122, .28), transparent 28%),
+        radial-gradient(circle at 82% 14%, rgba(208, 178, 74, .30), transparent 30%),
+        radial-gradient(circle at 76% 82%, rgba(63, 155, 115, .28), transparent 32%),
+        radial-gradient(circle at 18% 86%, rgba(66, 111, 189, .26), transparent 30%),
+        linear-gradient(135deg, #f5f1f4, #edf3f7 42%, #f6f2e7 72%, #edf5f0);
       overflow: hidden;
     }
 
@@ -46,9 +46,9 @@
       position: fixed;
       inset: -20%;
       background:
-        conic-gradient(from 150deg at 50% 50%, rgba(255,255,255,.9), rgba(255,79,163,.28), rgba(255,255,255,.96), rgba(47,128,255,.26), rgba(255,228,94,.34), rgba(41,223,154,.28), rgba(255,255,255,.9));
+        conic-gradient(from 150deg at 50% 50%, rgba(255,255,255,.72), rgba(185,77,122,.16), rgba(255,255,255,.78), rgba(66,111,189,.16), rgba(208,178,74,.18), rgba(63,155,115,.16), rgba(255,255,255,.72));
       filter: blur(64px);
-      opacity: .78;
+      opacity: .58;
       animation: metalFlow 18s ease-in-out infinite alternate;
     }
 
@@ -87,6 +87,16 @@
     .danger {
       background: rgba(255,245,247,.68);
       color: var(--danger);
+    }
+
+    .subtle {
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.30);
+      color: rgba(21,25,27,.64);
+      box-shadow: none;
+      font-size: 13px;
     }
 
     .ok {
@@ -198,8 +208,8 @@
       border-radius: 44% 56% 52% 48%;
       background:
         radial-gradient(circle at 32% 26%, rgba(255,255,255,.96), transparent 20%),
-        conic-gradient(from 210deg, #ffffff, #ff4fa3, #ffe45e, #29df9a, #2f80ff, #9b5cff, #ffffff);
-      box-shadow: inset 0 0 52px rgba(255,255,255,.72), inset -36px -48px 80px rgba(54,68,88,.18), 0 34px 110px rgba(255,79,163,.22);
+        conic-gradient(from 210deg, #ffffff, #b94d7a, #d0b24a, #3f9b73, #426fbd, #7258b8, #ffffff);
+      box-shadow: inset 0 0 52px rgba(255,255,255,.62), inset -36px -48px 80px rgba(54,68,88,.20), 0 34px 110px rgba(66,111,189,.16);
       filter: saturate(120%);
       animation: blob 10s ease-in-out infinite alternate;
     }
@@ -464,7 +474,9 @@
     .option-stack {
       display: grid;
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(21,25,27,.08);
     }
 
     .option-card {
@@ -928,22 +940,21 @@
             </div>
           </div>
           <div class="actions">
-            <button class="primary" id="addItemBtn">新增条目</button>
+            <button class="subtle" id="addItemBtn">新增条目</button>
           </div>
         </div>
 
         <div class="item-stage">
-          <div class="item-strip" id="itemStrip"></div>
           ${item ? `
             <div class="item-card-main" id="swipeItemCard">
               <div class="item-title-row">
                 <div>
                   <h2>${escapeHtml(item.name)}</h2>
-                  <div class="audio-info">第 ${itemIndex + 1} / ${total} 条 · 左右滑动切换条目</div>
+                  <div class="audio-info">第 ${itemIndex + 1} / ${total} 条 · 左滑进入下一条并自动播放</div>
                 </div>
                 <div class="actions">
-                  <button id="renameItemBtn">改名</button>
-                  <button class="danger" id="deleteItemBtn">删除</button>
+                  <button class="subtle" id="renameItemBtn">改名</button>
+                  <button class="subtle danger" id="deleteItemBtn">删除</button>
                 </div>
               </div>
               <div id="itemAudioBox"></div>
@@ -951,60 +962,40 @@
                 <label>条目备注</label>
                 <textarea id="itemNote">${escapeHtml(item.note || "")}</textarea>
               </div>
+              <div class="options-head" style="margin-top:14px">
+                <div>
+                  <h3>选项</h3>
+                  <div class="audio-info">可选；和当前条目放在同一个分区。</div>
+                </div>
+                <button class="subtle" id="addOptionBtn">新增选项</button>
+              </div>
+              <div class="option-stack" id="optionStack"></div>
               <div class="nav-row">
                 <button id="prevItemBtn" ${itemIndex <= 0 ? "disabled" : ""}>上一条</button>
-                <span>滑动卡片也可以切换</span>
+                <span>左右滑动切换并播放</span>
                 <button class="primary" id="nextItemBtn" ${itemIndex >= total - 1 ? "disabled" : ""}>下一条</button>
               </div>
             </div>
-
-            <div class="section-card">
-              <div class="options-head">
-                <div>
-                  <h3>本条选项</h3>
-                  <div class="audio-info">选项和条目放在一起；需要分支引导时再添加。</div>
-                </div>
-                <button class="primary" id="addOptionBtn">新增选项</button>
-              </div>
-              <div class="option-stack" id="optionStack"></div>
-            </div>
-          ` : `<div class="empty">还没有条目。点“新增条目”开始。</div>`}
+          ` : `<div class="empty">还没有条目。<br><button class="primary" id="emptyAddItemBtn">新增第一条</button></div>`}
         </div>
       `;
-
-      renderItemStrip(scale);
 
       $("renameScaleBtn").addEventListener("click", () => renameCurrent("scale"));
       $("deleteScaleBtn").addEventListener("click", () => removeCurrent("scale"));
       $("addItemBtn").addEventListener("click", addItem);
+      $("emptyAddItemBtn")?.addEventListener("click", addItem);
 
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
         $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
         $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
         $("itemNote").addEventListener("input", (event) => saveNote("item", event.target.value));
-        $("prevItemBtn").addEventListener("click", () => moveItem(-1));
-        $("nextItemBtn").addEventListener("click", () => moveItem(1));
+        $("prevItemBtn").addEventListener("click", () => moveItem(-1, true));
+        $("nextItemBtn").addEventListener("click", () => moveItem(1, true));
         attachSwipe($("swipeItemCard"));
         await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
         await renderOptionStack(item);
       }
-    }
-
-    function renderItemStrip(scale) {
-      $("itemStrip").innerHTML = scale.items.length ? scale.items.map((item, index) => `
-        <button class="${item.id === state.selectedItemId ? "primary" : ""}" data-id="${item.id}">
-          ${index + 1}. ${escapeHtml(item.name)}
-        </button>
-      `).join("") : `<div class="empty">还没有条目。</div>`;
-
-      document.querySelectorAll("#itemStrip button").forEach((button) => {
-        button.addEventListener("click", () => {
-          state.selectedItemId = button.dataset.id;
-          state.selectedOptionId = selectedItem()?.options[0]?.id || null;
-          render();
-        });
-      });
     }
 
     async function renderOptionStack(item) {
@@ -1057,7 +1048,7 @@
       });
     }
 
-    function moveItem(delta) {
+    function moveItem(delta, autoPlay = false) {
       const scale = selectedScale();
       const index = selectedItemIndex();
       if (!scale || index < 0) return;
@@ -1066,6 +1057,9 @@
       state.selectedItemId = scale.items[nextIndex].id;
       state.selectedOptionId = scale.items[nextIndex].options[0]?.id || null;
       render();
+      if (autoPlay) {
+        setTimeout(() => playAudio("item", scale.items[nextIndex].id), 120);
+      }
     }
 
     function attachSwipe(element) {
@@ -1080,7 +1074,7 @@
         const dx = touch.clientX - state.touchStartX;
         const dy = touch.clientY - state.touchStartY;
         if (Math.abs(dx) < 54 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
-        moveItem(dx < 0 ? 1 : -1);
+        moveItem(dx < 0 ? 1 : -1, true);
       }, { passive: true });
     }
 
