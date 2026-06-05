@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>自定义量表录音播放器</title>
+  <title>语音引导卡</title>
   <style>
     :root {
       color-scheme: dark;
@@ -571,7 +571,7 @@
   <div class="app">
     <header class="topbar" id="topbar">
       <div class="brand">
-        <b>自定义量表录音播放器</b>
+        <b>语音引导卡</b>
         <span id="crumb">资料库</span>
       </div>
       <div class="top-actions">
@@ -583,7 +583,7 @@
     <section class="cover active" id="coverScreen">
       <div class="cover-content">
         <span class="eyebrow">Voice Guide</span>
-        <h1>量表录音播放器</h1>
+        <h1>语音引导卡</h1>
         <p>录一次，反复播放。滑动切换条目。</p>
         <div class="cover-actions">
           <button class="primary" id="enterBtn">进入资料库</button>
@@ -941,19 +941,6 @@
       const total = scale.items.length;
 
       $("editor").innerHTML = `
-        <div class="section-card">
-          <div class="panel-head">
-            <div>
-              <h2>${escapeHtml(scale.name)}</h2>
-              <div class="audio-info">${scale.items.length} 个条目</div>
-            </div>
-            <div class="actions"></div>
-          </div>
-          <div class="actions">
-            <button class="subtle" id="addItemBtn">新增条目</button>
-          </div>
-        </div>
-
         <div class="item-stage">
           ${item ? `
             <div class="item-card-main" id="swipeItemCard">
@@ -975,12 +962,15 @@
                 <span>滑动切换并播放</span>
                 <button class="primary" id="nextItemBtn" ${itemIndex >= total - 1 ? "disabled" : ""}>下一条</button>
               </div>
+              <div class="actions" style="margin-top:10px">
+                <button class="subtle" id="addItemBtn">新增条目</button>
+              </div>
             </div>
           ` : `<div class="empty">还没有条目。<br><button class="primary" id="emptyAddItemBtn">新增第一条</button></div>`}
         </div>
       `;
 
-      $("addItemBtn").addEventListener("click", addItem);
+      $("addItemBtn")?.addEventListener("click", addItem);
       $("emptyAddItemBtn")?.addEventListener("click", addItem);
 
       if (item) {
