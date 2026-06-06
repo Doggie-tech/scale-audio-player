@@ -376,11 +376,6 @@
       font-weight: 700;
     }
 
-    .audio-box {
-      display: grid;
-      gap: 12px;
-    }
-
     .compact-audio .actions {
       justify-content: flex-end;
       gap: 6px;
@@ -452,21 +447,6 @@
     .item-title-row h2 {
       font-size: clamp(28px, 4vw, 48px);
       line-height: 1.02;
-    }
-
-    .nav-row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 10px;
-      align-items: center;
-      margin-top: 12px;
-    }
-
-    .nav-row span {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 760;
-      white-space: nowrap;
     }
 
     .item-strip {
@@ -560,7 +540,7 @@
       .screen { overflow: visible; }
       .workspace { grid-template-columns: 1fr; height: auto; }
       .panel { overflow: visible; }
-      .grid-2, .option-grid, .nav-row { grid-template-columns: 1fr; }
+      .grid-2, .option-grid { grid-template-columns: 1fr; }
       .cover { min-height: calc(100vh - 28px); }
       .cover::after { width: 74vw; right: -18vw; top: 9%; opacity: .72; }
       .cover-content { align-self: end; }
@@ -836,9 +816,21 @@
       await saveData();
     }
 
-    async function playAudio(type, id) {
+    function stopActiveAudio() {
+      if (!state.activeAudio) return;
+      state.activeAudio.onended = null;
+      state.activeAudio.onerror = null;
+      state.activeAudio.pause();
+      state.activeAudio = null;
+      state.playingKey = null;
+    }
+
+    async function playAudio(type, id, interrupt = false) {
       const key = audioKey(type, id);
-      if (state.playingKey) return;
+      if (state.playingKey) {
+        if (!interrupt) return;
+        stopActiveAudio();
+      }
       const clip = await getClip(type, id);
       if (!clip) return;
       const url = URL.createObjectURL(clip.blob);
@@ -947,7 +939,6 @@
               <div class="item-title-row">
                 <div>
                   <h2>${escapeHtml(item.name)}</h2>
-                  <div class="audio-info">第 ${itemIndex + 1} / ${total} 条</div>
                 </div>
                 <div class="actions"></div>
               </div>
@@ -957,11 +948,6 @@
                 <button class="subtle" id="addOptionBtn">新增选项</button>
               </div>
               <div class="option-stack" id="optionStack"></div>
-              <div class="nav-row">
-                <button id="prevItemBtn" ${itemIndex <= 0 ? "disabled" : ""}>上一条</button>
-                <span>滑动切换并播放</span>
-                <button class="primary" id="nextItemBtn" ${itemIndex >= total - 1 ? "disabled" : ""}>下一条</button>
-              </div>
               <div class="actions" style="margin-top:10px">
                 <button class="subtle" id="addItemBtn">新增条目</button>
               </div>
@@ -975,8 +961,6 @@
 
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
-        $("prevItemBtn").addEventListener("click", () => moveItem(-1, true));
-        $("nextItemBtn").addEventListener("click", () => moveItem(1, true));
         attachSwipe($("swipeItemCard"));
         await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
         await renderOptionStack(item);
@@ -1018,7 +1002,7 @@
       state.selectedOptionId = scale.items[nextIndex].options[0]?.id || null;
       render();
       if (autoPlay) {
-        setTimeout(() => playAudio("item", scale.items[nextIndex].id), 120);
+        setTimeout(() => playAudio("item", scale.items[nextIndex].id, true), 120);
       }
     }
 
