@@ -403,19 +403,6 @@
       overflow-wrap: anywhere;
     }
 
-    .speak-text {
-      min-height: 118px;
-      margin-top: 10px;
-      font-size: 18px;
-    }
-
-    .option-text {
-      min-height: 54px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-size: 14px;
-    }
-
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -451,6 +438,12 @@
       box-shadow: var(--soft-shadow);
       backdrop-filter: blur(22px) saturate(150%);
       touch-action: pan-y;
+      animation: cardIn .18s ease both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: .72; transform: translateX(10px) scale(.995); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
     }
 
     .item-title-row {
@@ -630,6 +623,10 @@
       selectedOptionId: null,
       modalResolve: null,
       playingKey: null,
+      activeAudio: null,
+      mediaRecorder: null,
+      chunks: [],
+      currentAudioTarget: null,
       touchStartX: 0,
       touchStartY: 0
     };
@@ -646,10 +643,11 @@
 
     function openDb() {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open("custom-scale-audio-player", 1);
+        const request = indexedDB.open("custom-scale-audio-player", 2);
         request.onupgradeneeded = () => {
           const db = request.result;
           if (!db.objectStoreNames.contains("data")) db.createObjectStore("data", { keyPath: "id" });
+          if (!db.objectStoreNames.contains("clips")) db.createObjectStore("clips", { keyPath: "key" });
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
@@ -732,7 +730,7 @@
       if (!scale) return;
       const name = await openTextModal("新增条目", "例如：定向力-时间");
       if (!name) return;
-      const item = { id: uid("item"), name, text: "", options: [] };
+      const item = { id: uid("item"), name, options: [] };
       scale.items.push(item);
       state.selectedItemId = item.id;
       state.selectedOptionId = null;
@@ -745,7 +743,7 @@
       if (!item) return;
       const name = await openTextModal("新增选项", "例如：提示语A、重复说明、练习项");
       if (!name) return;
-      const option = { id: uid("option"), name, text: "" };
+      const option = { id: uid("option"), name };
       item.options.push(option);
       state.selectedOptionId = option.id;
       await saveData();
@@ -804,62 +802,106 @@
       return selectedScale()?.items.flatMap((item) => item.options).find((option) => option.id === id) || null;
     }
 
-    function stopSpeech() {
-      speechSynthesis.cancel();
+    function audioKey(type, id) {
+      return `${type}:${id}`;
+    }
+
+    async function getClip(type, id) {
+      return requestToPromise(store("clips").get(audioKey(type, id)));
+    }
+
+    async function putClip(type, id, file, name = file.name) {
+      await requestToPromise(store("clips", "readwrite").put({
+        key: audioKey(type, id),
+        name,
+        size: file.size,
+        type: file.type || "audio/webm",
+        blob: file,
+        updatedAt: new Date().toISOString()
+      }));
+    }
+
+    function stopActiveAudio() {
+      if (!state.activeAudio) return;
+      state.activeAudio.onended = null;
+      state.activeAudio.onerror = null;
+      state.activeAudio.pause();
+      state.activeAudio = null;
       state.playingKey = null;
     }
 
-    function playText(type, id, interrupt = false) {
-      const key = `${type}:${id}`;
+    async function playAudio(type, id, interrupt = false) {
+      const key = audioKey(type, id);
       if (state.playingKey) {
         if (!interrupt) return;
-        stopSpeech();
+        stopActiveAudio();
       }
-      const target = targetByType(type, id);
-      const text = target?.text?.trim();
-      if (!text || !("speechSynthesis" in window)) return;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "zh-CN";
-      utterance.rate = 0.92;
+      const clip = await getClip(type, id);
+      if (!clip) return;
+      const url = URL.createObjectURL(clip.blob);
+      const audio = new Audio(url);
       state.playingKey = key;
+      state.activeAudio = audio;
       render();
-      utterance.onend = () => {
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
         state.playingKey = null;
+        state.activeAudio = null;
         render();
       };
-      utterance.onerror = () => {
-        state.playingKey = null;
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.play().catch(cleanup);
+    }
+
+    async function startRecording(type, id, label) {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        alert("当前浏览器不支持网页录音。");
+        return;
+      }
+      state.currentAudioTarget = { type, id };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      state.chunks = [];
+      state.mediaRecorder = new MediaRecorder(stream);
+      state.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size) state.chunks.push(event.data);
+      };
+      state.mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        const file = new File([blob], `${label}-录音.webm`, { type: blob.type });
+        await putClip(type, id, file, file.name);
+        state.currentAudioTarget = null;
         render();
       };
-      speechSynthesis.speak(utterance);
+      state.mediaRecorder.start();
+      render();
     }
 
-    async function saveText(type, id, value) {
-      const target = targetByType(type, id);
-      if (!target) return;
-      target.text = value;
-      await saveData();
+    function stopRecording() {
+      if (!state.mediaRecorder || state.mediaRecorder.state === "inactive") return;
+      state.mediaRecorder.stop();
     }
 
-    function renderTextControls(container, type, id, compact = false) {
+    async function renderAudioControls(container, type, id, label, compact = false) {
       const target = targetByType(type, id);
-      const isPlaying = state.playingKey === `${type}:${id}`;
+      const clip = await getClip(type, id);
+      const isRecording = state.currentAudioTarget?.type === type && state.currentAudioTarget?.id === id;
+      const isPlaying = state.playingKey === audioKey(type, id);
       const isAnyPlaying = Boolean(state.playingKey);
+      const playLabel = type === "item" ? "播放引导" : "播放";
       container.innerHTML = `
         <div class="${compact ? "compact-audio" : ""}">
-          <textarea class="${compact ? "option-text" : "speak-text"}" data-action="speech-text" placeholder="${compact ? "选项文字" : "输入要朗读的文字"}">${escapeHtml(target?.text || "")}</textarea>
           <div class="actions">
-            <button class="primary" data-action="play" ${target?.text?.trim() && !isAnyPlaying ? "" : "disabled"}>${isPlaying ? "播放中" : "播放"}</button>
-            <button data-action="stop" ${isPlaying ? "" : "disabled"}>停止</button>
+            <button class="${clip ? "primary" : ""}" data-action="play" ${clip && !isAnyPlaying && !isRecording ? "" : "disabled"}>${isPlaying ? "播放中" : playLabel}</button>
+            <button class="${!clip ? "primary" : ""} ${isRecording ? "danger" : ""}" data-action="record" ${isRecording || isAnyPlaying ? "disabled" : ""}>${isRecording ? "录音中" : clip ? "重录" : "录音"}</button>
+            <button data-action="stop" ${isRecording ? "" : "disabled"}>停止</button>
           </div>
         </div>
       `;
-      container.querySelector('[data-action="speech-text"]').addEventListener("input", (event) => saveText(type, id, event.target.value));
-      container.querySelector('[data-action="play"]').addEventListener("click", () => playText(type, id));
-      container.querySelector('[data-action="stop"]').addEventListener("click", () => {
-        stopSpeech();
-        render();
-      });
+      container.querySelector('[data-action="play"]').addEventListener("click", () => playAudio(type, id));
+      container.querySelector('[data-action="record"]').addEventListener("click", () => startRecording(type, id, target?.name || label));
+      container.querySelector('[data-action="stop"]').addEventListener("click", stopRecording);
     }
 
     function renderScales() {
@@ -925,7 +967,7 @@
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
         attachSwipe($("swipeItemCard"));
-        renderTextControls($("itemAudioBox"), "item", item.id);
+        await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
         await renderOptionStack(item);
       }
     }
@@ -951,7 +993,7 @@
       $("optionStack").innerHTML = options.length ? options.join("") : `<div class="empty">没有选项</div>`;
 
       for (const option of item.options) {
-        renderTextControls($(`optionAudio-${option.id}`), "option", option.id, true);
+        await renderAudioControls($(`optionAudio-${option.id}`), "option", option.id, option.name, true);
       }
     }
 
@@ -961,11 +1003,14 @@
       if (!scale || index < 0) return;
       const nextIndex = Math.max(0, Math.min(scale.items.length - 1, index + delta));
       if (nextIndex === index) return;
+      if (autoPlay) stopActiveAudio();
       state.selectedItemId = scale.items[nextIndex].id;
       state.selectedOptionId = scale.items[nextIndex].options[0]?.id || null;
       render();
       if (autoPlay) {
-        setTimeout(() => playText("item", scale.items[nextIndex].id, true), 120);
+        requestAnimationFrame(() => {
+          setTimeout(() => playAudio("item", scale.items[nextIndex].id, true), 40);
+        });
       }
     }
 
