@@ -99,6 +99,19 @@
       font-size: 13px;
     }
 
+    .icon-btn {
+      width: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0;
+      border-radius: 999px;
+      background: rgba(255,255,255,.075);
+      color: rgba(238,243,244,.72);
+      box-shadow: none;
+      font-size: 22px;
+      line-height: 1;
+    }
+
     .ok {
       background: rgba(112,199,166,.14);
       color: var(--ok);
@@ -301,6 +314,13 @@
       gap: 9px;
     }
 
+    .scale-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
+      gap: 8px;
+      align-items: center;
+    }
+
     .row-card {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -313,6 +333,13 @@
       background: rgba(255,255,255,.08);
       text-align: left;
       box-shadow: 0 8px 24px rgba(29,39,52,.08);
+    }
+
+    .scale-open {
+      width: 100%;
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
     }
 
     .row-card.active {
@@ -510,6 +537,17 @@
       justify-content: flex-end;
     }
 
+    .manage-panel {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .manage-panel button {
+      width: 100%;
+      justify-content: center;
+    }
+
     .empty {
       display: grid;
       place-items: center;
@@ -621,6 +659,17 @@
     </div>
   </div>
 
+  <div class="modal" id="manageModal">
+    <div class="dialog">
+      <h3 id="manageTitle">管理</h3>
+      <div class="manage-panel">
+        <button id="manageRename">重命名</button>
+        <button class="danger" id="manageDelete">删除</button>
+        <button class="subtle" id="manageCancel">取消</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const state = {
       db: null,
@@ -634,6 +683,7 @@
       mediaRecorder: null,
       chunks: [],
       currentAudioTarget: null,
+      manageTarget: null,
       touchStartX: 0,
       touchStartY: 0
     };
@@ -718,6 +768,65 @@
       $("textModal").classList.remove("active");
       if (state.modalResolve) state.modalResolve(value);
       state.modalResolve = null;
+    }
+
+    function openManageMenu(type, id, name) {
+      state.manageTarget = { type, id };
+      const labels = { scale: "量表", item: "条目", option: "选项" };
+      $("manageTitle").textContent = `${labels[type]} · ${name}`;
+      $("manageModal").classList.add("active");
+    }
+
+    function closeManageMenu() {
+      $("manageModal").classList.remove("active");
+      state.manageTarget = null;
+    }
+
+    function activateManagedTarget(target) {
+      if (!target) return false;
+      if (target.type === "scale") {
+        const scale = state.scales.find((entry) => entry.id === target.id);
+        if (!scale) return false;
+        state.selectedScaleId = scale.id;
+        if (!scale.items.some((item) => item.id === state.selectedItemId)) {
+          state.selectedItemId = scale.items[0]?.id || null;
+        }
+        state.selectedOptionId = selectedItem()?.options[0]?.id || null;
+        return true;
+      }
+
+      for (const scale of state.scales) {
+        const item = scale.items.find((entry) => entry.id === (target.type === "item" ? target.id : state.selectedItemId));
+        if (target.type === "item" && item) {
+          state.selectedScaleId = scale.id;
+          state.selectedItemId = item.id;
+          state.selectedOptionId = item.options[0]?.id || null;
+          return true;
+        }
+        if (target.type === "option") {
+          const optionItem = scale.items.find((entry) => entry.options.some((option) => option.id === target.id));
+          if (optionItem) {
+            state.selectedScaleId = scale.id;
+            state.selectedItemId = optionItem.id;
+            state.selectedOptionId = target.id;
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    async function runManagedAction(action) {
+      const target = state.manageTarget;
+      $("manageModal").classList.remove("active");
+      if (!activateManagedTarget(target)) {
+        state.manageTarget = null;
+        render();
+        return;
+      }
+      state.manageTarget = null;
+      if (action === "rename") await renameCurrent(target.type);
+      if (action === "delete") await removeCurrent(target.type);
     }
 
     async function addScale() {
@@ -915,13 +1024,11 @@
       $("scaleList").innerHTML = state.scales.length ? state.scales.map((scale) => {
         const itemCount = scale.items.length;
         const optionCount = scale.items.reduce((sum, item) => sum + item.options.length, 0);
-        return `<div class="row-card ${scale.id === state.selectedScaleId ? "active" : ""}" data-id="${scale.id}">
-          <span><strong>${escapeHtml(scale.name)}</strong><span>${itemCount} 个条目 · ${optionCount} 个选项</span></span>
-          <span class="manage-actions">
-            <button class="subtle" data-action="open-scale" data-id="${scale.id}">打开</button>
-            <button class="subtle" data-action="rename-scale" data-id="${scale.id}">重命名</button>
-            <button class="subtle danger" data-action="delete-scale" data-id="${scale.id}">删除</button>
-          </span>
+        return `<div class="scale-row">
+          <button class="row-card scale-open ${scale.id === state.selectedScaleId ? "active" : ""}" data-action="open-scale" data-id="${scale.id}">
+            <span><strong>${escapeHtml(scale.name)}</strong><span>${itemCount} 个条目 · ${optionCount} 个选项</span></span>
+          </button>
+          <button class="icon-btn" data-action="manage-scale" data-id="${scale.id}" data-name="${escapeHtml(scale.name)}" aria-label="管理 ${escapeHtml(scale.name)}" title="管理">…</button>
         </div>`;
       }).join("") : `<div class="empty">还没有量表<br>点“新增”开始。</div>`;
 
@@ -934,16 +1041,9 @@
           render();
         });
       });
-      document.querySelectorAll('[data-action="rename-scale"]').forEach((button) => {
+      document.querySelectorAll('[data-action="manage-scale"]').forEach((button) => {
         button.addEventListener("click", () => {
-          state.selectedScaleId = button.dataset.id;
-          renameCurrent("scale");
-        });
-      });
-      document.querySelectorAll('[data-action="delete-scale"]').forEach((button) => {
-        button.addEventListener("click", () => {
-          state.selectedScaleId = button.dataset.id;
-          removeCurrent("scale");
+          openManageMenu("scale", button.dataset.id, button.dataset.name);
         });
       });
     }
@@ -968,10 +1068,7 @@
                 <div>
                   <h2>${escapeHtml(item.name)}</h2>
                 </div>
-                <div class="manage-actions">
-                  <button class="subtle" id="renameItemBtn">重命名</button>
-                  <button class="subtle danger" id="deleteItemBtn">删除</button>
-                </div>
+                <button class="icon-btn" id="manageItemBtn" aria-label="管理当前条目" title="管理">…</button>
               </div>
               <div id="itemAudioBox"></div>
               <div class="options-head" style="margin-top:14px">
@@ -992,8 +1089,7 @@
 
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
-        $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
-        $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
+        $("manageItemBtn").addEventListener("click", () => openManageMenu("item", item.id, item.name));
         attachSwipe($("swipeItemCard"));
         await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
         await renderOptionStack(item);
@@ -1013,10 +1109,7 @@
           <div class="option-card" data-id="${option.id}">
             <div class="option-card-head">
               <h3>${index + 1}. ${escapeHtml(option.name)}</h3>
-              <div class="manage-actions">
-                <button class="subtle" data-action="rename-option" data-id="${option.id}">重命名</button>
-                <button class="subtle danger" data-action="delete-option" data-id="${option.id}">删除</button>
-              </div>
+              <button class="icon-btn" data-action="manage-option" data-id="${option.id}" data-name="${escapeHtml(option.name)}" aria-label="管理 ${escapeHtml(option.name)}" title="管理">…</button>
             </div>
             <div id="optionAudio-${option.id}"></div>
           </div>
@@ -1027,16 +1120,9 @@
       for (const option of item.options) {
         await renderAudioControls($(`optionAudio-${option.id}`), "option", option.id, option.name, true);
       }
-      document.querySelectorAll('[data-action="rename-option"]').forEach((button) => {
+      document.querySelectorAll('[data-action="manage-option"]').forEach((button) => {
         button.addEventListener("click", () => {
-          state.selectedOptionId = button.dataset.id;
-          renameCurrent("option");
-        });
-      });
-      document.querySelectorAll('[data-action="delete-option"]').forEach((button) => {
-        button.addEventListener("click", () => {
-          state.selectedOptionId = button.dataset.id;
-          removeCurrent("option");
+          openManageMenu("option", button.dataset.id, button.dataset.name);
         });
       });
     }
@@ -1093,6 +1179,9 @@
     $("modalInput").addEventListener("keydown", (event) => {
       if (event.key === "Enter") closeTextModal($("modalInput").value.trim());
     });
+    $("manageCancel").addEventListener("click", closeManageMenu);
+    $("manageRename").addEventListener("click", () => runManagedAction("rename"));
+    $("manageDelete").addEventListener("click", () => runManagedAction("delete"));
 
     async function start() {
       state.db = await openDb();
