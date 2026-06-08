@@ -503,6 +503,13 @@
       white-space: nowrap;
     }
 
+    .manage-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .empty {
       display: grid;
       place-items: center;
@@ -908,19 +915,35 @@
       $("scaleList").innerHTML = state.scales.length ? state.scales.map((scale) => {
         const itemCount = scale.items.length;
         const optionCount = scale.items.reduce((sum, item) => sum + item.options.length, 0);
-        return `<button class="row-card ${scale.id === state.selectedScaleId ? "active" : ""}" data-id="${scale.id}">
+        return `<div class="row-card ${scale.id === state.selectedScaleId ? "active" : ""}" data-id="${scale.id}">
           <span><strong>${escapeHtml(scale.name)}</strong><span>${itemCount} 个条目 · ${optionCount} 个选项</span></span>
-          <span class="pill">打开</span>
-        </button>`;
+          <span class="manage-actions">
+            <button class="subtle" data-action="open-scale" data-id="${scale.id}">打开</button>
+            <button class="subtle" data-action="rename-scale" data-id="${scale.id}">重命名</button>
+            <button class="subtle danger" data-action="delete-scale" data-id="${scale.id}">删除</button>
+          </span>
+        </div>`;
       }).join("") : `<div class="empty">还没有量表<br>点“新增”开始。</div>`;
 
-      document.querySelectorAll("#scaleList .row-card").forEach((button) => {
+      document.querySelectorAll('[data-action="open-scale"]').forEach((button) => {
         button.addEventListener("click", () => {
           state.selectedScaleId = button.dataset.id;
           const scale = selectedScale();
           state.selectedItemId = scale.items[0]?.id || null;
           state.selectedOptionId = selectedItem()?.options[0]?.id || null;
           render();
+        });
+      });
+      document.querySelectorAll('[data-action="rename-scale"]').forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedScaleId = button.dataset.id;
+          renameCurrent("scale");
+        });
+      });
+      document.querySelectorAll('[data-action="delete-scale"]').forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedScaleId = button.dataset.id;
+          removeCurrent("scale");
         });
       });
     }
@@ -945,7 +968,10 @@
                 <div>
                   <h2>${escapeHtml(item.name)}</h2>
                 </div>
-                <div class="actions"></div>
+                <div class="manage-actions">
+                  <button class="subtle" id="renameItemBtn">重命名</button>
+                  <button class="subtle danger" id="deleteItemBtn">删除</button>
+                </div>
               </div>
               <div id="itemAudioBox"></div>
               <div class="options-head" style="margin-top:14px">
@@ -966,6 +992,8 @@
 
       if (item) {
         $("addOptionBtn").addEventListener("click", addOption);
+        $("renameItemBtn").addEventListener("click", () => renameCurrent("item"));
+        $("deleteItemBtn").addEventListener("click", () => removeCurrent("item"));
         attachSwipe($("swipeItemCard"));
         await renderAudioControls($("itemAudioBox"), "item", item.id, item.name);
         await renderOptionStack(item);
@@ -985,8 +1013,12 @@
           <div class="option-card" data-id="${option.id}">
             <div class="option-card-head">
               <h3>${index + 1}. ${escapeHtml(option.name)}</h3>
-              <div id="optionAudio-${option.id}"></div>
+              <div class="manage-actions">
+                <button class="subtle" data-action="rename-option" data-id="${option.id}">重命名</button>
+                <button class="subtle danger" data-action="delete-option" data-id="${option.id}">删除</button>
+              </div>
             </div>
+            <div id="optionAudio-${option.id}"></div>
           </div>
         `);
       }
@@ -995,6 +1027,18 @@
       for (const option of item.options) {
         await renderAudioControls($(`optionAudio-${option.id}`), "option", option.id, option.name, true);
       }
+      document.querySelectorAll('[data-action="rename-option"]').forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedOptionId = button.dataset.id;
+          renameCurrent("option");
+        });
+      });
+      document.querySelectorAll('[data-action="delete-option"]').forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedOptionId = button.dataset.id;
+          removeCurrent("option");
+        });
+      });
     }
 
     function moveItem(delta, autoPlay = false) {
